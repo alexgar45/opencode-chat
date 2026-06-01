@@ -1,23 +1,24 @@
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 RUN corepack enable && corepack prepare pnpm@11.0.8 --activate
 
-FROM base AS deps
+FROM base AS build
+WORKDIR /repo
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* .npmrc ./
+COPY apps/ apps/
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @chat/server build
+RUN pnpm --filter @chat/web build
+
+FROM base AS prod-deps
 WORKDIR /repo
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* .npmrc ./
 COPY apps/server/package.json apps/server/
 COPY apps/web/package.json apps/web/
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --prod --frozen-lockfile
+RUN pnpm --filter @chat/server deploy --legacy /prod/server
+RUN pnpm --filter @chat/web deploy --legacy /prod/web
 
-FROM base AS build
-WORKDIR /repo
-COPY --from=deps /repo/ ./
-COPY apps/server/ apps/server/
-COPY apps/web/ apps/web/
-RUN pnpm --filter @chat/server build
-RUN pnpm --filter @chat/web build
-
-FROM node:20-alpine AS runtime
-RUN corepack enable
+FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 ENV SERVER_PORT=3001
@@ -25,9 +26,8 @@ ENV WEB_ORIGIN=http://localhost:3001
 ENV OPENCODE_SERVER_URL=http://host.docker.internal:4096
 ENV STATIC_DIR=/app/web/dist
 
-COPY --from=build --chown=node:node /repo/apps/server/package.json ./server/
 COPY --from=build --chown=node:node /repo/apps/server/dist ./server/dist
-COPY --from=build --chown=node:node /repo/apps/server/node_modules ./server/node_modules
+COPY --from=prod-deps --chown=node:node /prod/server/node_modules ./server/node_modules
 COPY --from=build --chown=node:node /repo/apps/web/dist ./web/dist
 
 USER node

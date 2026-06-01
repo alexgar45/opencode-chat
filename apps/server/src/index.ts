@@ -63,7 +63,7 @@ app.setNotFoundHandler((req, reply) => {
   return reply.code(404).send({ error: "NotFound", message: req.url });
 });
 
-app.setErrorHandler((error, request, reply) => {
+app.setErrorHandler((error: Error & { statusCode?: number }, request, reply) => {
   request.log.error(error);
   const status = error.statusCode ?? 500;
   reply.status(status).send({

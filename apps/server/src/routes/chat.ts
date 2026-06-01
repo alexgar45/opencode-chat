@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import type { SessionPromptData } from "@opencode-ai/sdk";
 import { getClient } from "../opencode.js";
 
 type ChatBody = {
@@ -28,7 +29,7 @@ export async function chatRoutes(app: FastifyInstance) {
       sessionID = created.data.id;
     }
 
-    const promptBody: Record<string, unknown> = {
+    const promptBody: NonNullable<SessionPromptData["body"]> = {
       parts: [{ type: "text", text: body.message }],
     };
     if (body.model) promptBody.model = body.model;
@@ -37,18 +38,18 @@ export async function chatRoutes(app: FastifyInstance) {
     try {
       const result = await client.session.prompt({
         path: { id: sessionID },
-        body: promptBody as never,
+        body: promptBody,
       });
 
       if (result.error) {
+        const errMsg =
+          (result.error as { data?: { message?: string } }).data?.message ??
+          (result.error as { message?: string }).message ??
+          "opencode returned an error";
         app.log.error({ error: result.error }, "opencode prompt error");
         return reply.code(502).send({
           error: "OpencodeError",
-          message:
-            typeof result.error === "string"
-              ? result.error
-              : (result.error as { message?: string })?.message ??
-                "opencode returned an error",
+          message: errMsg,
         });
       }
 
