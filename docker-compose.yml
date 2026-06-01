@@ -1,0 +1,23 @@
+services:
+  chat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: opencode-go-chat:latest
+    container_name: opencode-go-chat
+    ports:
+      - "3001:3001"
+    environment:
+      SERVER_PORT: "3001"
+      WEB_ORIGIN: "http://localhost:3001"
+      OPENCODE_SERVER_URL: "http://host.docker.internal:4096"
+      STATIC_DIR: "/app/web/dist"
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

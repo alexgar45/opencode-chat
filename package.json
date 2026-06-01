@@ -1,0 +1,18 @@
+{
+  "name": "opencode-go-chat",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chat app powered by OpenCode Go models via the official @opencode-ai/sdk",
+  "packageManager": "pnpm@11.0.8",
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "dev:server": "pnpm --filter @chat/server dev",
+    "dev:web": "pnpm --filter @chat/web dev",
+    "build": "pnpm -r run build",
+    "start": "pnpm --filter @chat/server start",
+    "typecheck": "pnpm -r run typecheck"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
